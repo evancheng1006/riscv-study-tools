@@ -1,0 +1,277 @@
+
+<head>
+    <title>Instruction Decoder</title>
+    <style>
+        table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+    </style>
+
+</head>
+
+<!-- <button class="" id="run_btn" onclick="">run</button> -->
+<body>
+    Hexadecimal String (32bit, should be 8 characters): <input type="text" id="input" maxlength="8" value="125a2837">
+    <button class="" id="run_btn" onclick="run()">run</button>
+    <br>
+    <output id="output"></output>
+</body>
+<script>
+function hex_char_to_four_bit_bin(x) {
+    if (x === "0") {
+        return "0000";
+    } else if (x === "1") {
+        return "0001"
+    } else if (x === "2") {
+        return "0010"
+    } else if (x === "3") {
+        return "0011"
+    } else if (x === "4") {
+        return "0100";
+    } else if (x === "5") {
+        return "0101"
+    } else if (x === "6") {
+        return "0110"
+    } else if (x === "7") {
+        return "0111"
+    } else if (x === "8") {
+        return "1000";
+    } else if (x === "9") {
+        return "1001"
+    } else if (x === "a") {
+        return "1010"
+    } else if (x === "b") {
+        return "1011"
+    } else if (x === "c") {
+        return "1100";
+    } else if (x === "d") {
+        return "1101"
+    } else if (x === "e") {
+        return "1110"
+    } else if (x === "f") {
+        return "1111"
+    }
+    return "ERROR";
+}
+function four_bit_bin_to_hex_char(x) {
+    if (x === "0000") {
+        return "0";
+    } else if (x === "0001") {
+        return "1"
+    } else if (x === "0010") {
+        return "2"
+    } else if (x === "0011") {
+        return "3"
+    } else if (x === "0100") {
+        return "4";
+    } else if (x === "0101") {
+        return "5"
+    } else if (x === "0110") {
+        return "6"
+    } else if (x === "0111") {
+        return "7"
+    } else if (x === "1000") {
+        return "8";
+    } else if (x === "1001") {
+        return "9"
+    } else if (x === "1010") {
+        return "a"
+    } else if (x === "1011") {
+        return "b"
+    } else if (x === "1100") {
+        return "c";
+    } else if (x === "1101") {
+        return "d"
+    } else if (x === "1110") {
+        return "e"
+    } else if (x === "1111") {
+        return "f"
+    }
+    return "ERROR";
+}
+
+function my_hex_to_bin(x) {
+    let x_chars = x.toLowerCase().split("");
+    let ret = "";
+    for (let i = 0; i < x_chars.length; i++) {
+        ret += hex_char_to_four_bit_bin(x_chars[i])
+    }
+    return ret;
+}
+
+
+function parse_every_4bits(x) {
+    let ret = "";
+    ret += "<table>";
+    ret += "<tr>";
+    for (let i = 0; i < x.length; i += 4) {
+        let tmp = x.slice(i,i+4);
+        ret += "<th>" + four_bit_bin_to_hex_char(tmp) + "</th>";
+    }
+    ret += "</tr>";
+    ret += "<tr>";
+    for (let i = 0; i < x.length; i += 4) {
+        let tmp = x.slice(i,i+4);
+        ret += "<td>" + tmp + "</td>";
+    }
+    ret += "</tr>";
+    ret += "</table>";
+    ret += "<br>"
+    return ret;
+}
+
+function meaning_reg(value) {
+    let reg_id = parseInt(value,2);
+    if (reg_id >= 32 || reg_id < 0) {
+        return "ERROR: reg_id out of range";
+    }
+    const reg_meaning_arr = [
+        "x0/zero",
+        "x1/ra",
+        "x2/sp",
+        "x3/gp",
+        "x4/tp",
+        "x5/t0",
+        "x6/t1",
+        "x7/t2",
+        "x8/s0/fp",
+        "x9/s1",
+        "x10/a0",
+        "x11/a1",
+        "x12/a2",
+        "x13/a3",
+        "x14/a4",
+        "x15/a5",
+        "x16/a6",
+        "x17/a7",
+        "x18/s2",
+        "x19/s3",
+        "x20/s4",
+        "x21/s5",
+        "x22/s6",
+        "x23/s7",
+        "x24/s8",
+        "x25/s9",
+        "x26/s10",
+        "x27/s11",
+        "x28/t3",
+        "x29/t4",
+        "x30/t5",
+        "x31/t6"
+    ];
+    return reg_meaning_arr[reg_id];
+}
+
+function meaning_1(name, value) {
+    if ((name === "rs1") || (name === "rs2") || (name === "rd")) {
+        return meaning_reg(value);
+    }
+
+    return value;
+}
+function meaning_2(name, value) {
+    return parseInt(value,2).toString(10);
+}
+function meaning_3(name, value) {
+    return "0x" + parseInt(value,2).toString(16);
+}
+function get_meaning_1_row(names, values) {
+    let ret = "";
+    ret += "<tr>";
+    for (let i = 0; i < names.length; i++) {
+        let meaning = meaning_1(names[i], values[i]);
+        ret += "<td>" + meaning + "</td>";
+    }
+    ret += "</tr>";
+    return ret;
+}
+function get_meaning_2_row(names, values) {
+    let ret = "";
+    ret += "<tr>";
+    for (let i = 0; i < names.length; i++) {
+        let meaning = meaning_2(names[i], values[i]);
+        ret += "<td>" + meaning + "</td>";
+    }
+    ret += "</tr>";
+    return ret;
+}
+function get_meaning_3_row(names, values) {
+    let ret = "";
+    ret += "<tr>";
+    for (let i = 0; i < names.length; i++) {
+        let meaning = meaning_3(names[i], values[i]);
+        ret += "<td>" + meaning + "</td>";
+    }
+    ret += "</tr>";
+    return ret;
+}
+function get_th_row(xs) {
+    let ret = "";
+    ret += "<tr>";
+    for (let i = 0; i < xs.length; i++) {
+        ret += "<th>" + xs[i] + "</th>";
+    }
+    ret += "</tr>";
+    return ret;
+}
+function get_td_row(xs) {
+    let ret = "";
+    ret += "<tr>";
+    for (let i = 0; i < xs.length; i++) {
+        ret += "<td>" + xs[i] + "</th>";
+    }
+    ret += "</tr>";
+    return ret;
+}
+
+function parse_r_type(x) {
+    let ret = "";
+    let funct7 = x.slice(0,7);
+    let rs2 = x.slice(7,12);
+    let rs1 = x.slice(12,17);
+    let funct3 = x.slice(17,20);
+    let rd = x.slice(20,25);
+    let opcode = x.slice(25,32);
+    let values = [funct7, rs2, rs1, funct3, rd, opcode];
+    let names = ["funct7", "rs2", "rs1", "funct3", "rd", "opcode"];
+
+    ret += "Parse R-type:<br>";
+    ret += "<table>";
+    ret += get_th_row(names);
+    ret += get_td_row(values);
+    ret += get_meaning_1_row(names, values);
+    ret += get_meaning_2_row(names, values);
+    ret += get_meaning_3_row(names, values);
+    ret += "</table>";
+    ret += "<br>"
+    return ret;
+}
+
+
+function run() {
+    let x = document.getElementById("input");
+    let o = document.getElementById("output");
+    let input_data = x.value;
+    let output_data = "";
+    // check input string
+    if (input_data.length != 8) {
+        o.innerHTML = "Error: input length should be 8";
+        return;
+    }
+    if (input_data.match(/^[0-9a-fA-F]{8}$/g) == null) {
+        o.innerHTML = "Error: not a valid hexadecimal string";
+        return;
+    }
+    let input_data_bin = my_hex_to_bin(input_data);
+    // let bin_arr = input_data_bin.split("");
+    // console.log(bin_arr);
+    // console.log(bin_arr.length);
+    output_data += input_data + "<br>";
+    output_data += input_data_bin + "<br>"
+    output_data += parse_every_4bits(input_data_bin);
+    output_data += parse_r_type(input_data_bin);
+    console.log(output_data);
+    o.innerHTML = output_data;
+}
+</script>
