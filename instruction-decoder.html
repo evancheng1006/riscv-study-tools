@@ -263,6 +263,78 @@ function meaning_rtype(name, value, funct7, rs2, rs1, funct3, rd, opcode) {
     }
     return value;
 }
+function meaning_itype(name, value, imm11_0, rs1, funct3, rd, opcode) {
+    if ((name === "rs1") || (name === "rs2") || (name === "rd")) {
+        return meaning_reg(value);
+    } else if ((name === "opcode")) {
+        if (imm11_0 === "000000000000" &&
+            rs1 === "00000" &&
+            funct3 === "000" &&
+            rd === "00000" &&
+            opcode === "0010011"
+        ) {
+            return "NOP(ADDI)";
+        }
+        return meaning_opcode_32bit(value);
+    }
+    else if ((name === "funct3")) {
+        if (opcode === "1100111") {
+            if (funct3 === "000") {
+                return "JALR";
+            }
+        }
+        if (opcode === "0000011") {
+            if (funct3 === "000") {
+                return "LB";
+            } else if (funct3 === "001") {
+                return "LH";
+            } else if (funct3 === "010") {
+                return "LW";
+            } else if (funct3 === "011") {
+                return "LBU";
+            } else if (funct3 === "101") {
+                return "LHU";
+            }
+        } else if (opcode === "0010011") {
+            if (funct3 === "000") {
+                return "ADDI";
+            } else if (funct3 === "010") {
+                return "SLTI";
+            } else if (funct3 === "011") {
+                return "SLTIU";
+            } else if (funct3 === "100") {
+                return "XORI";
+            } else if (funct3 === "110") {
+                return "ORI";
+            } else if (funct3 === "111") {
+                return "ANDI";
+            } else if (funct3 === "001") {
+                return "SLLI";
+            } else if (funct3 === "101") {
+                if (imm11_0.slice(0,7) === "0000000") {
+                    return "SRLI";
+                } else if (imm11_0.slice(0,7) === "0100000") {
+                    return "SRAI";
+                }
+            }
+        }
+    } else if ((name === "imm11_0")) {
+        if (opcode === "0010011") {
+            if (funct3 === "001") {
+                return "shamt=" + parseInt(imm11_0.slice(7,12),2);
+            } else if (funct3 === "101") {
+                if (imm11_0.slice(0,7) === "0000000") {
+                    return "shamt=" + parseInt(imm11_0.slice(7,12),2);
+                } else if (imm11_0.slice(0,7) === "0100000") {
+                    return "shamt=" + parseInt(imm11_0.slice(7,12),2);
+                }
+            }
+        }
+    }
+    return value;
+}
+
+
 function meaning_2(name, value) {
     return parseInt(value,2).toString(10);
 }
@@ -280,6 +352,17 @@ function get_meaning_rtype_row(names, values, funct7, rs2, rs1, funct3, rd, opco
     ret += "</tr>";
     return ret;
 }
+function get_meaning_itype_row(names, values, imm11_0, rs1, funct3, rd, opcode) {
+    let ret = "";
+    ret += "<tr>";
+    for (let i = 0; i < names.length; i++) {
+        let meaning = meaning_itype(names[i], values[i], imm11_0, rs1, funct3, rd, opcode);
+        ret += "<td>" + meaning + "</td>";
+    }
+    ret += "</tr>";
+    return ret;
+}
+
 function get_meaning_2_row(names, values) {
     let ret = "";
     ret += "<tr>";
@@ -325,7 +408,7 @@ function inst_type_32bit(opcode) {
         return "ERROR: opcode_id out of range";
     }
     const inst_type_arr = [
-        "unknown", // LOAD, 00000
+        "i", // LOAD, 00000
         "unknown", // LOAD-FP, 00001
         "unknown", // custom-0, 00010
         "unknown", // MISC-MEM, 00011
@@ -350,7 +433,7 @@ function inst_type_32bit(opcode) {
         "unknown", // custom-2/rv128, 10110
         "unknown", // (48b), 10111
         "unknown", // BRANCH, 11000
-        "unknown", // JALR, 11001
+        "i", // JALR, 11001
         "unknown", // reserved, 11010
         "unknown", // JAL, 11011
         "unknown", // SYSTEM, 11100
@@ -395,7 +478,7 @@ function parse_i_type(x) {
     ret += "<table>";
     ret += get_th_row(names);
     ret += get_td_row(values);
-    // ret += get_meaning_itype_row(names, values, opcode);
+    ret += get_meaning_itype_row(names, values, imm11_0, rs1, funct3, rd, opcode);
     ret += get_meaning_2_row(names, values);
     ret += get_meaning_3_row(names, values);
     ret += "</table>";
@@ -450,9 +533,6 @@ function run() {
         return;
     }
     let input_data_bin = my_hex_to_bin(input_data);
-    // let bin_arr = input_data_bin.split("");
-    // console.log(bin_arr);
-    // console.log(bin_arr.length);
     output_data += input_data + "<br>";
     output_data += input_data_bin + "<br>"
     output_data += parse_every_4bits(input_data_bin);
