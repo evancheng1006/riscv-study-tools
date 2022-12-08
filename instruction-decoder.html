@@ -12,7 +12,8 @@
 
 <!-- <button class="" id="run_btn" onclick="">run</button> -->
 <body>
-    Hexadecimal String (32bit, should be 8 characters): <input type="text" id="input" maxlength="8" value="125a2837">
+    This is a (INCOMPLETE) base RV32I-ISA instruction (and RV32M standard extention) decoder.<br>
+    Hexadecimal String (16/32-bit, should be 4/8 characters): <input type="text" id="input" maxlength="8" value="02d68533">
     <button class="" id="run_btn" onclick="run()">run</button>
     <br>
     <output id="output"></output>
@@ -127,47 +128,139 @@ function meaning_reg(value) {
         return "ERROR: reg_id out of range";
     }
     const reg_meaning_arr = [
-        "x0/zero",
-        "x1/ra",
-        "x2/sp",
-        "x3/gp",
-        "x4/tp",
-        "x5/t0",
-        "x6/t1",
-        "x7/t2",
-        "x8/s0/fp",
-        "x9/s1",
-        "x10/a0",
-        "x11/a1",
-        "x12/a2",
-        "x13/a3",
-        "x14/a4",
-        "x15/a5",
-        "x16/a6",
-        "x17/a7",
-        "x18/s2",
-        "x19/s3",
-        "x20/s4",
-        "x21/s5",
-        "x22/s6",
-        "x23/s7",
-        "x24/s8",
-        "x25/s9",
-        "x26/s10",
-        "x27/s11",
-        "x28/t3",
-        "x29/t4",
-        "x30/t5",
-        "x31/t6"
+        "zero",
+        "ra",
+        "sp",
+        "gp",
+        "tp",
+        "t0",
+        "t1",
+        "t2",
+        "s0/fp",
+        "s1",
+        "a0",
+        "a1",
+        "a2",
+        "a3",
+        "a4",
+        "a5",
+        "a6",
+        "a7",
+        "s2",
+        "s3",
+        "s4",
+        "s5",
+        "s6",
+        "s7",
+        "s8",
+        "s9",
+        "s10",
+        "s11",
+        "t3",
+        "t4",
+        "t5",
+        "t6"
     ];
     return reg_meaning_arr[reg_id];
 }
+function meaning_opcode_32bit(value) {
+    let opcode_id = parseInt(value.slice(0,5),2);
+    if (opcode_id >= 32 || opcode_id < 0) {
+        return "ERROR: opcode_id out of range";
+    }
+    const reg_meaning_arr = [
+        "LOAD", // 00000
+        "LOAD-FP", // 00001
+        "custom-0", // 00010
+        "MISC-MEM", // 00011
+        "OP-IMM", // 00100
+        "AUIPC", // 00101
+        "OP-IMM-32", // 00110
+        "(48b)", // 00111
+        "STORE", // 01000
+        "STORE-FP", // 01001
+        "custom-1", // 01010
+        "AMO", // 01011
+        "OP", // 01100
+        "LUI", // 01101
+        "OP-32", // 01110
+        "(64b)", // 01111
+        "MADD", // 10000
+        "MSUB", // 10001
+        "NMSUB", // 10010
+        "NMADD", // 10011
+        "OP-FP", // 10100
+        "reserved", // 10101
+        "custom-2/rv128", // 10110
+        "(48b)", // 10111
+        "BRANCH", // 11000
+        "JALR", // 11001
+        "reserved", // 11010
+        "JAL", // 11011
+        "SYSTEM", // 11100
+        "reserved", // 11101
+        "custom-3/rv128", // 11110
+        "(>=80b)", // 11111
+    ];
+    return reg_meaning_arr[opcode_id];
+}
 
-function meaning_1(name, value) {
+
+function meaning_rtype(name, value, funct7, rs2, rs1, funct3, rd, opcode) {
     if ((name === "rs1") || (name === "rs2") || (name === "rd")) {
         return meaning_reg(value);
+    } else if ((name === "opcode")) {
+        return meaning_opcode_32bit(value);
     }
-
+    else if ((name === "funct7") || (name === "funct3")) {
+        if (opcode === "0110011") {
+            if (funct7 === "0000000") {
+                if (funct3 === "000") {
+                    return "ADD";
+                } else if (funct3 === "001") {
+                    return "SLL";
+                } else if (funct3 === "010") {
+                    return "SLT";
+                } else if (funct3 === "011") {
+                    return "SLTU";
+                } else if (funct3 === "100") {
+                    return "XOR";
+                } else if (funct3 === "101") {
+                    return "SRL";
+                } else if (funct3 === "110") {
+                    return "OR";
+                } else if (funct3 === "111") {
+                    return "AND";
+                }
+            } else if (funct7 === "0100000") {
+                if (funct3 === "000") {
+                    return "SUB";
+                } else if (funct3 === "101") {
+                    return "SRA";
+                }
+            }
+            //RV32M Standard Extension
+            else if (funct7 === "0000001") {
+                if (funct3 == "000") {
+                    return "MUL";
+                } else if (funct3 == "001") {
+                    return "MULH";
+                } else if (funct3 == "010") {
+                    return "MULHSU";
+                } else if (funct3 == "011") {
+                    return "MULHU";
+                } else if (funct3 == "100") {
+                    return "DIV";
+                } else if (funct3 == "101") {
+                    return "DIVU";
+                } else if (funct3 == "110") {
+                    return "REM";
+                } else if (funct3 == "111") {
+                    return "REMU";
+                }
+            }
+        }
+    }
     return value;
 }
 function meaning_2(name, value) {
@@ -176,11 +269,12 @@ function meaning_2(name, value) {
 function meaning_3(name, value) {
     return "0x" + parseInt(value,2).toString(16);
 }
-function get_meaning_1_row(names, values) {
+
+function get_meaning_rtype_row(names, values, funct7, rs2, rs1, funct3, rd, opcode) {
     let ret = "";
     ret += "<tr>";
     for (let i = 0; i < names.length; i++) {
-        let meaning = meaning_1(names[i], values[i]);
+        let meaning = meaning_rtype(names[i], values[i], funct7, rs2, rs1, funct3, rd, opcode);
         ret += "<td>" + meaning + "</td>";
     }
     ret += "</tr>";
@@ -225,6 +319,48 @@ function get_td_row(xs) {
     return ret;
 }
 
+function inst_type_32bit(opcode) {
+    let opcode_id = parseInt(opcode.slice(0,5),2);
+    if (opcode_id >= 32 || opcode_id < 0) {
+        return "ERROR: opcode_id out of range";
+    }
+    const inst_type_arr = [
+        "unknown", // LOAD, 00000
+        "unknown", // LOAD-FP, 00001
+        "unknown", // custom-0, 00010
+        "unknown", // MISC-MEM, 00011
+        "i", // OP-IMM, 00100
+        "unknown", // AUIPC, 00101
+        "unknown", // OP-IMM-32, 00110
+        "unknown", // (48b), 00111
+        "unknown", // STORE, 01000
+        "unknown", // STORE-FP, 01001
+        "unknown", // custom-1, 01010
+        "unknown", // AMO, 01011
+        "r", // OP, 01100
+        "unknown", // LUI, 01101
+        "unknown", // OP-32, 01110
+        "unknown", // (64b), 01111
+        "unknown", // MADD, 10000
+        "unknown", // MSUB, 10001
+        "unknown", // NMSUB, 10010
+        "unknown", // NMADD, 10011
+        "unknown", // OP-FP, 10100
+        "unknown", // reserved, 10101
+        "unknown", // custom-2/rv128, 10110
+        "unknown", // (48b), 10111
+        "unknown", // BRANCH, 11000
+        "unknown", // JALR, 11001
+        "unknown", // reserved, 11010
+        "unknown", // JAL, 11011
+        "unknown", // SYSTEM, 11100
+        "unknown", // reserved, 11101
+        "unknown", // custom-3/rv128, 11110
+        "unknown", // (>=80b), 11111
+    ];
+    return inst_type_arr[opcode_id];
+}
+
 function parse_r_type(x) {
     let ret = "";
     let funct7 = x.slice(0,7);
@@ -235,12 +371,31 @@ function parse_r_type(x) {
     let opcode = x.slice(25,32);
     let values = [funct7, rs2, rs1, funct3, rd, opcode];
     let names = ["funct7", "rs2", "rs1", "funct3", "rd", "opcode"];
-
     ret += "Parse R-type:<br>";
     ret += "<table>";
     ret += get_th_row(names);
     ret += get_td_row(values);
-    ret += get_meaning_1_row(names, values);
+    ret += get_meaning_rtype_row(names, values, funct7, rs2, rs1, funct3, rd, opcode);
+    ret += get_meaning_2_row(names, values);
+    ret += get_meaning_3_row(names, values);
+    ret += "</table>";
+    ret += "<br>"
+    return ret;
+}
+function parse_i_type(x) {
+    let ret = "";
+    let imm11_0 = x.slice(0,12);
+    let rs1 = x.slice(12,17);
+    let funct3 = x.slice(17,20);
+    let rd = x.slice(20,25);
+    let opcode = x.slice(25,32);
+    let values = [imm11_0, rs1, funct3, rd, opcode];
+    let names = ["imm11_0", "rs1", "funct3", "rd", "opcode"];
+    ret += "Parse I-type:<br>";
+    ret += "<table>";
+    ret += get_th_row(names);
+    ret += get_td_row(values);
+    // ret += get_meaning_itype_row(names, values, opcode);
     ret += get_meaning_2_row(names, values);
     ret += get_meaning_3_row(names, values);
     ret += "</table>";
@@ -249,17 +404,48 @@ function parse_r_type(x) {
 }
 
 
+function parse_16bit(x) {
+    let ret = "";
+    if (x.slice(14,16) === "11") {
+        return "ERROR: not a valid 16-bit instruction<br>";
+    }
+    ret += "16-bit<br>"
+    return ret;
+}
+function parse_32bit(x) {
+    let ret = "";
+    opcode = x.slice(25,32);
+    if (opcode.slice(5,7) !== "11") {
+        return "ERROR: not a valid 32-bit instruction<br>";
+    }
+    let inst_type = inst_type_32bit(opcode);
+    let opcode_meaning = meaning_opcode_32bit(opcode);
+    ret += "Opcode: " + opcode_meaning + "(" + opcode + ")<br>";
+    if (inst_type === "r") {
+        ret += "R-type<br>";
+        ret += parse_r_type(x);
+    } else if (inst_type === "i") {
+        ret += "I-type<br>";
+        ret += parse_i_type(x);
+    } else {
+        ret += "unknown instruction type, make it possible for every type<br>";
+        ret += parse_r_type(x);
+        ret += parse_i_type(x);
+    }
+    return ret;
+}
+
 function run() {
     let x = document.getElementById("input");
     let o = document.getElementById("output");
     let input_data = x.value;
     let output_data = "";
     // check input string
-    if (input_data.length != 8) {
-        o.innerHTML = "Error: input length should be 8";
+    if (((input_data.length % 4) != 0) || input_data.length > 8) {
+        o.innerHTML = "Error: input length should be 4 or 8 (now we support only 16-bit and 32-bit instructions)";
         return;
     }
-    if (input_data.match(/^[0-9a-fA-F]{8}$/g) == null) {
+    if (input_data.match(/^[0-9a-fA-F]{4,8}$/g) == null) {
         o.innerHTML = "Error: not a valid hexadecimal string";
         return;
     }
@@ -270,8 +456,14 @@ function run() {
     output_data += input_data + "<br>";
     output_data += input_data_bin + "<br>"
     output_data += parse_every_4bits(input_data_bin);
-    output_data += parse_r_type(input_data_bin);
+    if (input_data_bin.length == 16) {
+        output_data += parse_16bit(input_data_bin);
+    }
+    else if (input_data_bin.length == 32) {
+        output_data += parse_32bit(input_data_bin);
+    }
     console.log(output_data);
     o.innerHTML = output_data;
 }
 </script>
+<script>run();</script>
